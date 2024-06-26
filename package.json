@@ -1,0 +1,22 @@
+{
+  "name": "@locustjs/services",
+  "version": "1.0.0",
+  "description": "This library provides models and types to work with services (front-end/back-end)",
+  "main": "dist/index.js",
+  "module": "src/index.js",
+  "scripts": {
+    "build": "rollup src/index.js --file dist/index.js --format cjs",
+    "test": "node -r esm ./tests/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "esm": "^3.2.25",
+    "rollup": "^4.18.0"
+  },
+  "dependencies": {
+    "@locustjs/base": "^4.1.0",
+    "@locustjs/test": "^1.6.1"
+  }
+}
