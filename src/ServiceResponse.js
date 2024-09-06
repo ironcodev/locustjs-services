@@ -5,29 +5,29 @@ import {
   isUndefined,
   isString,
   isDate,
-  isSomeString,
-  isNullOrEmpty,
+  isNull,
 } from "@locustjs/base";
 import { convert } from "@locustjs/base";
+import { pascalCase, camelCase } from "@locustjs/extensions-string";
 import ServiceResponseStatus from "./ServiceResponseStatus";
 
-const pascalCase = (x) =>
-  isSomeString(x) ? x[0].toUpperCase() + x.substr(1) : "";
-const camelCase = (x) =>
-  isSomeString(x) ? x[0].toLowerCase() + x.substr(1) : "";
-const isUpper = (x) =>
-  typeof x == "string" &&
-  x.split("").every((ch) => ch.charCodeAt(0) >= 65 && ch.charCodeAt(0) <= 90);
+const isNullOrUndefined = (x) => isNull(x) || isUndefined(x);
 
-const props = [
-  ["success", isBool][("status", isString)][("message", isString)],
-  ["date", isDate],
-  ["data", () => true],
-  ["exception", isObject],
-  ["innerResponses", (x) => isArray(x) || isNullOrEmpty(x)],
-  ["info", () => true],
-  ["logs", (x) => isArray(x) || isNullOrEmpty(x)],
-];
+const props = {
+  success: ["Success", isBool],
+  status: ["Status", isString],
+  subject: ["Subject", isString],
+  message: ["Message", isString],
+  messageKey: ["MessageKey", isString],
+  messageArgs: ["MessageArgs", isObject],
+  date: ["Date", isDate],
+  data: ["Data", () => true],
+  exception: ["Exception", isObject],
+  innerResponses: ["InnerResponses", (x) => isArray(x)],
+  info: ["Info", isString],
+  bag: ["Bag", () => true],
+  logs: ["Logs", (x) => isArray(x)],
+};
 
 class ServiceResponse {
   static usePascalProps = false;
@@ -37,21 +37,13 @@ class ServiceResponse {
   static formatStatus(status) {
     let result = [];
 
-    if (ServiceResponse.usePascalStatus) {
+    if (isString(status)) {
       status.split("").forEach((ch, i) => {
         if (isUpper(ch) && i > 0) {
           result.push(ServiceResponse.statusSeparator);
         }
 
-        result.push(ch);
-      });
-    } else {
-      status.split("").forEach((ch, i) => {
-        if (isUpper(ch) && i > 0) {
-          result.push(ServiceResponse.statusSeparator);
-        }
-
-        result.push(ch.toLowerCase());
+        result.push(ServiceResponse.usePascalStatus ? ch : ch.toLowerCase());
       });
     }
 
@@ -72,141 +64,105 @@ class ServiceResponse {
     return this._usePascalProps;
   }
   set usePascalProps(value) {
-    const old = this._usePascalProps;
+    if (isBool(value)) {
+      const old = this._usePascalProps;
 
-    this._usePascalProps = convert.toBool(value);
+      this._usePascalProps = value;
 
-    if (old != this._usePascalProps) {
-      if (this._usePascalProps) {
-        for (let prop of props) {
-          const camelProp = camelCase(prop[0]);
-          const pascalProp = pascalCase(prop[0]);
+      if (old != this._usePascalProps) {
+        for (let prop of Object.keys(this)) {
+          if (prop != "_usePascalProps") {
+            const pascalProp = old ? prop: props[prop][0];
+            const camelProp = old ? camelCase(prop): prop;
 
-          this._setProp(pascalProp, this[camelProp]);
-          this._removeProp(camelProp);
+            this._setProp(camelProp, value ? this[prop] : this[pascalProp]);
+
+            if (value) {
+              delete this[prop];
+            } else {
+              delete this[pascalProp];
+            }
+          }
         }
-      } else {
-        const camelProp = camelCase(prop[0]);
-        const pascalProp = pascalCase(prop[0]);
-
-        this._setProp(camelProp, this[pascalProp]);
-        this._removeProp(pascalProp);
       }
     }
   }
-  _copyProp(prop, sr, isFunc) {
-    const propCamel = camelCase(prop);
-    const propPascal = pascalCase(prop);
+  _copyProp(prop, sr) {
+    const entry = props[prop];
+    const propCamel = prop;
+    const propPascal = entry[0];
 
     if (
-      !isUndefined(this[propCamel]) ||
-      !isUndefined(this[propPascal]) ||
-      !isUndefined(sr[propCamel]) ||
-      !isUndefined(sr[propPascal])
+      !isNullOrUndefined(sr[propCamel]) ||
+      !isNullOrUndefined(sr[propPascal])
     ) {
+      let value;
+
       if (sr instanceof ServiceResponse) {
-        if (sr.usePascalProps) {
-          if (this.usePascalProps) {
-            this[propPascal] = isFunc(sr[propPascal])
-              ? sr[propPascal]
-              : this[propPascal];
-          } else {
-            this[propCamel] = isFunc(sr[propPascal])
-              ? sr[propPascal]
-              : this[propCamel];
-          }
-        } else {
-          if (this.usePascalProps) {
-            this[propPascal] = isFunc(sr[propCamel])
-              ? sr[propCamel]
-              : this[propPascal];
-          } else {
-            this[propCamel] = isFunc(sr[propCamel])
-              ? sr[propCamel]
-              : this[propCamel];
-          }
-        }
+        value = sr.usePascalProps ? sr[propPascal] : sr[propCamel];
       } else {
-        if (this.usePascalProps) {
-          if (!isUndefined(sr[propPascal])) {
-            this[propPascal] = isFunc(sr[propPascal])
-              ? sr[propPascal]
-              : this[propPascal];
-          } else if (!isUndefined(sr[propCamel])) {
-            this[propPascal] = isFunc(sr[propCamel])
-              ? sr[propCamel]
-              : this[propPascal];
-          }
-        } else {
-          if (!isUndefined(sr[propPascal])) {
-            this[propCamel] = isFunc(sr[propPascal])
-              ? sr[propPascal]
-              : this[propCamel];
-          } else if (!isUndefined(sr[propCamel])) {
-            this[propCamel] = isFunc(sr[propCamel])
-              ? sr[propCamel]
-              : this[propCamel];
-          }
+        if (!isUndefined(sr[propPascal])) {
+          value = sr[propPascal];
+        } else if (!isUndefined(sr[propCamel])) {
+          value = sr[propCamel];
         }
       }
+
+      this._setProp(prop, value);
     }
   }
   _setProp(prop, value) {
-    const propCamel = camelCase(prop);
-    const propPascal = pascalCase(prop);
+    const entry = props[prop];
 
-    if (this.usePascalProps) {
-      this[propPascal] = value;
-    } else {
-      this[propCamel] = value;
+    if (entry[1](value)) {
+      if (this.usePascalProps) {
+        this[entry[0]] = value;
+      } else {
+        this[prop] = value;
+      }
     }
   }
   _removeProp(prop) {
-    const propCamel = camelCase(prop);
-    const propPascal = pascalCase(prop);
+    const entry = props[prop];
 
-    delete this[propPascal];
-    delete this[propCamel];
+    delete this[prop];
+    delete this[entry[0]];
   }
   copy(sr) {
     if (isObject(sr)) {
-      this._copyProp("success", sr, isBool);
-      this._copyProp("status", sr, isString);
-      this._copyProp("message", sr, isString);
-      this._copyProp("subject", sr, isString);
-      this._copyProp("date", sr, isDate);
-      this._copyProp("exception", sr, isObject);
-      this._copyProp("data", sr, () => true);
-      this._copyProp("info", sr, () => true);
-      this._copyProp("innerResponses", sr, isArray);
-      this._copyProp("logs", sr, isArray);
+      for (let prop of Object.keys(props)) {
+        this._copyProp(prop, sr);
+      }
     }
   }
   toJson(spacer) {
-    const keys = Object.keys(this)
-      .filter((key) => this[key] != null && key != "_usePascalProps")
-      .map((key) => (this.usePascalProps ? key : key.toLowerCase()));
-
-    return JSON.stringify(this, keys, spacer);
+    return JSON.stringify(this, Object.keys(props), spacer);
   }
   is(s) {
-    return this.Status.match(new RegExp(s, "i")) != null;
+    const status = this.usePascalProps ? this.Status : this.status;
+    return status && status.match(new RegExp(s, "i")) != null;
   }
   setStatus(status, message, ex) {
-    this._setProp("status", status);
+    this._setProp("status", ServiceResponse.formatStatus(status));
     this._setProp("message", message);
     this._setProp("exception", ex);
-    this._setProp("success", false);
+    this._setProp(
+      "success",
+      this.is(
+        ServiceResponse.formatStatus("success") ||
+          ServiceResponse.formatStatus("succeeded")
+      )
+    );
   }
 }
 
 Object.keys(ServiceResponseStatus).forEach((key) => {
-  const method = key[0].toLowerCase() + key.substr(1);
+  const methodName = key[0].toLowerCase() + key.substr(1);
   const status = ServiceResponseStatus[key];
 
-  if (ServiceResponse.prototype[method] == undefined) {
+  if (ServiceResponse.prototype[methodName] == undefined) {
     if (key == "Succeeded") {
-      ServiceResponse.prototype[method] = function (data, message) {
+      ServiceResponse.prototype[methodName] = function (data, message) {
         this._setProp("status", ServiceResponse.formatStatus(status));
         this._setProp("message", message);
         this._setProp("success", true);
@@ -214,7 +170,7 @@ Object.keys(ServiceResponseStatus).forEach((key) => {
         this._setProp("data", data);
       };
     } else {
-      ServiceResponse.prototype[method] = function (message, ex) {
+      ServiceResponse.prototype[methodName] = function (message, ex) {
         this._setProp("status", ServiceResponse.formatStatus(status));
         this._setProp("message", message);
         this._setProp("success", false);
@@ -223,11 +179,11 @@ Object.keys(ServiceResponseStatus).forEach((key) => {
     }
   }
 
-  if (ServiceResponse[method] == undefined) {
-    ServiceResponse[method] = (...args) => {
+  if (ServiceResponse[methodName] == undefined) {
+    ServiceResponse[methodName] = (...args) => {
       const result = new ServiceResponse();
 
-      result[method](...args);
+      result[methodName](...args);
 
       return result;
     };
@@ -244,13 +200,13 @@ class ServicePagingResponse extends ServiceResponse {
   constructor() {
     super();
 
-    this.Data = {
+    this._setProp("data", {
       Page: 1,
       PageSize: 10,
       RecordCount: 0,
       PageCount: 0,
       Items: [],
-    };
+    });
   }
 }
 

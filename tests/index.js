@@ -10,7 +10,6 @@ const tests = [
       sr.usePascalProps = true;
 
       expect(sr).toBeObject();
-console.log(sr)
       expect(sr.Success).notToBeUndefined().toBeBool();
       expect(sr.Status).notToBeUndefined().toBeString();
       expect(sr.Message).notToBeUndefined().toBeString();
@@ -22,25 +21,26 @@ console.log(sr)
       expect(sr.date).toBeUndefined();
     },
   ],
-//   [
-//     "ServiceResponse: camel",
-//     (expect) => {
-//       const sr = new ServiceResponse();
+  [
+    "ServiceResponse: camel",
+    (expect) => {
+      const sr = new ServiceResponse();
 
-//       sr.usePascalProps = false;
+      sr.usePascalProps = true;
+      sr.usePascalProps = false;
 
-//       expect(sr).toBeObject();
+      expect(sr).toBeObject();
 
-//       expect(sr.success).notToBeUndefined().toBeBool();
-//       expect(sr.status).notToBeUndefined().toBeString();
-//       expect(sr.message).notToBeUndefined().toBeString();
-//       expect(sr.date).notToBeUndefined().toBeDate();
+      expect(sr.success).notToBeUndefined().toBeBool();
+      expect(sr.status).notToBeUndefined().toBeString();
+      expect(sr.message).notToBeUndefined().toBeString();
+      expect(sr.date).notToBeUndefined().toBeDate();
 
-//       expect(sr.Success).toBeUndefined();
-//       expect(sr.Status).toBeUndefined();
-//       expect(sr.Message).toBeUndefined();
-//       expect(sr.Date).toBeUndefined();
-//     },
-//   ]
+      expect(sr.Success).toBeUndefined();
+      expect(sr.Status).toBeUndefined();
+      expect(sr.Message).toBeUndefined();
+      expect(sr.Date).toBeUndefined();
+    },
+  ],
 ];
-TestRunner.start(tests);
+TestRunner.start(tests, true);

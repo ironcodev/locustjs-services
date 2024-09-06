@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@locustjs/base": "^4.1.0",
-    "@locustjs/test": "^1.6.1"
+    "@locustjs/extensions-string": "^2.0.2",
+    "@locustjs/test": "^1.6.2"
   }
 }
