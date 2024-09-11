@@ -140,7 +140,7 @@ class ServiceResponse {
   }
   copy(sr) {
     if (isObject(sr)) {
-      for (let prop of Object.keys(props)) {
+      for (let prop of Object.keys(sr)) {
         this._copyProp(prop, sr);
       }
     }

@@ -180,6 +180,25 @@ const tests = [
 
       expect(sr2.status).toBe("NotFound");
     },
+  ],
+  [
+    "ServiceResponse: copy (extra props)",
+    (expect) => {
+      const sr1 = new ServiceResponse();
+      const sr2 = new ServiceResponse();
+
+      ServiceResponse.statusSeparator = '';
+      ServiceResponse.usePascalStatus = true;
+
+      sr1.foo = 'Foo';
+      sr1.notFound();
+
+      sr2.copy(sr1);
+
+      expect(sr2.status).toBe("NotFound");
+      expect(sr2.foo).toBeDefined();
+      expect(sr2.foo).toBe(sr1.foo);
+    },
   ]
 ];
 
