@@ -8,7 +8,7 @@ import {
   isNull,
 } from "@locustjs/base";
 import { convert } from "@locustjs/base";
-import { pascalCase, camelCase } from "@locustjs/extensions-string";
+import { isUpper, camelCase } from "@locustjs/extensions-string";
 import ServiceResponseStatus from "./ServiceResponseStatus";
 
 const isNullOrUndefined = (x) => isNull(x) || isUndefined(x);
@@ -51,12 +51,17 @@ class ServiceResponse {
   }
 
   constructor(sr) {
-    this._usePascalProps = convert.toBool(ServiceResponse.usePascalProps);
-
     this._setProp("success", false);
     this._setProp("status", "");
     this._setProp("message", "");
     this._setProp("date", new Date());
+
+    Object.defineProperty(this, "_usePascalProps", {
+      enumerable: false,
+      writable: true,
+      configurable: false,
+      value: convert.toBool(ServiceResponse.usePascalProps),
+    });
 
     this.copy(sr);
   }
@@ -72,8 +77,8 @@ class ServiceResponse {
       if (old != this._usePascalProps) {
         for (let prop of Object.keys(this)) {
           if (prop != "_usePascalProps") {
-            const pascalProp = old ? prop: props[prop][0];
-            const camelProp = old ? camelCase(prop): prop;
+            const pascalProp = old ? prop : props[prop][0];
+            const camelProp = old ? camelCase(prop) : prop;
 
             this._setProp(camelProp, value ? this[prop] : this[pascalProp]);
 
@@ -89,26 +94,31 @@ class ServiceResponse {
   }
   _copyProp(prop, sr) {
     const entry = props[prop];
-    const propCamel = prop;
-    const propPascal = entry[0];
 
-    if (
-      !isNullOrUndefined(sr[propCamel]) ||
-      !isNullOrUndefined(sr[propPascal])
-    ) {
-      let value;
+    if (!entry) {
+      this[prop] = sr[prop];
+    } else {
+      const propCamel = prop;
+      const propPascal = entry[0];
 
-      if (sr instanceof ServiceResponse) {
-        value = sr.usePascalProps ? sr[propPascal] : sr[propCamel];
-      } else {
-        if (!isUndefined(sr[propPascal])) {
-          value = sr[propPascal];
-        } else if (!isUndefined(sr[propCamel])) {
-          value = sr[propCamel];
+      if (
+        !isNullOrUndefined(sr[propCamel]) ||
+        !isNullOrUndefined(sr[propPascal])
+      ) {
+        let value;
+
+        if (sr instanceof ServiceResponse) {
+          value = sr.usePascalProps ? sr[propPascal] : sr[propCamel];
+        } else {
+          if (!isUndefined(sr[propPascal])) {
+            value = sr[propPascal];
+          } else if (!isUndefined(sr[propCamel])) {
+            value = sr[propCamel];
+          }
         }
-      }
 
-      this._setProp(prop, value);
+        this._setProp(prop, value);
+      }
     }
   }
   _setProp(prop, value) {
@@ -136,10 +146,11 @@ class ServiceResponse {
     }
   }
   toJson(spacer) {
-    return JSON.stringify(this, Object.keys(props), spacer);
+    return JSON.stringify(this, null, spacer);
   }
   is(s) {
     const status = this.usePascalProps ? this.Status : this.status;
+
     return status && status.match(new RegExp(s, "i")) != null;
   }
   setStatus(status, message, ex) {
@@ -189,8 +200,8 @@ Object.keys(ServiceResponseStatus).forEach((key) => {
     };
   }
 
-  if (ServiceResponse.prototype["is" + key]) {
-    ServiceResponse.prototype["is" + key] = () => {
+  if (ServiceResponse.prototype["is" + key] == undefined) {
+    ServiceResponse.prototype["is" + key] = function () {
       return this.is(ServiceResponse.formatStatus(status));
     };
   }
