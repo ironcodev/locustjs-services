@@ -19,14 +19,14 @@ const props = {
   subject: ["Subject", isString],
   message: ["Message", isString],
   messageKey: ["MessageKey", isString],
-  messageArgs: ["MessageArgs", isObject],
+  messageArgs: ["MessageArgs", () => true],
   date: ["Date", isDate],
   data: ["Data", () => true],
   exception: ["Exception", isObject],
-  innerResponses: ["InnerResponses", (x) => isArray(x)],
+  innerResponses: ["InnerResponses", isArray],
   info: ["Info", isString],
   bag: ["Bag", () => true],
-  logs: ["Logs", (x) => isArray(x)],
+  logs: ["Logs", isArray],
 };
 
 class ServiceResponse {
@@ -63,8 +63,46 @@ class ServiceResponse {
       value: convert.toBool(ServiceResponse.usePascalProps),
     });
 
+    // messageKey and messageArgs are special properties.
+    // we don't want them to be serialized in JSON, since they
+    // are only used in translating the ServiceResponse and
+    // providing a translated message.
+    // Thus, we define them using Object.defineProperty()
+    // with `enumerable: false`
+
+    if (this.usePascalProps) {
+      Object.defineProperty(this, "MessageKey", {
+        enumerable: false,
+        writable: true,
+        configurable: true,
+        value: undefined,
+      });
+
+      Object.defineProperty(this, "MessageArgs", {
+        enumerable: false,
+        writable: true,
+        configurable: true,
+        value: undefined,
+      });
+    } else {
+      Object.defineProperty(this, "messageKey", {
+        enumerable: false,
+        writable: true,
+        configurable: true,
+        value: undefined,
+      });
+
+      Object.defineProperty(this, "messageArgs", {
+        enumerable: false,
+        writable: true,
+        configurable: true,
+        value: undefined,
+      });
+    }
+
     this.copy(sr);
   }
+  usePascalPropsChanged(oldValue, newValue) {}
   get usePascalProps() {
     return this._usePascalProps;
   }
@@ -75,6 +113,42 @@ class ServiceResponse {
       this._usePascalProps = value;
 
       if (old != this._usePascalProps) {
+        if (old) {
+          Object.defineProperty(this, "messageKey", {
+            enumerable: false,
+            writable: true,
+            configurable: true,
+            value: this.MessageKey,
+          });
+
+          Object.defineProperty(this, "messageArgs", {
+            enumerable: false,
+            writable: true,
+            configurable: true,
+            value: this.MessageArgs,
+          });
+
+          delete this.MessageKey;
+          delete this.MessageArgs;
+        } else {
+          Object.defineProperty(this, "MessageKey", {
+            enumerable: false,
+            writable: true,
+            configurable: true,
+            value: this.messageKey,
+          });
+
+          Object.defineProperty(this, "MessageArgs", {
+            enumerable: false,
+            writable: true,
+            configurable: true,
+            value: this.messageArgs,
+          });
+
+          delete this.messageKey;
+          delete this.messageArgs;
+        }
+
         for (let prop of Object.keys(this)) {
           if (prop != "_usePascalProps") {
             const pascalProp = old ? prop : props[prop][0];
@@ -89,6 +163,8 @@ class ServiceResponse {
             }
           }
         }
+
+        this.usePascalPropsChanged(old, value);
       }
     }
   }
@@ -142,6 +218,22 @@ class ServiceResponse {
     if (isObject(sr)) {
       for (let prop of Object.keys(sr)) {
         this._copyProp(prop, sr);
+      }
+
+      if (sr.messageKey !== undefined) {
+        this._copyProp("messageKey", sr);
+      }
+
+      if (sr.MessageKey !== undefined) {
+        this._copyProp("MessageKey", sr);
+      }
+
+      if (sr.messageArgs !== undefined) {
+        this._copyProp("messageArgs", sr);
+      }
+
+      if (sr.MessageArgs !== undefined) {
+        this._copyProp("MessageArgs", sr);
       }
     }
   }
@@ -211,13 +303,47 @@ class ServicePagingResponse extends ServiceResponse {
   constructor() {
     super();
 
-    this._setProp("data", {
-      Page: 1,
-      PageSize: 10,
-      RecordCount: 0,
-      PageCount: 0,
-      Items: [],
-    });
+    this._setProp(
+      "data",
+      ServiceResponse.usePascalProps
+        ? {
+            Page: 1,
+            PageSize: 10,
+            RecordCount: 0,
+            PageCount: 0,
+            Items: [],
+          }
+        : {
+            page: 1,
+            pageSize: 10,
+            recordCount: 0,
+            pageCount: 0,
+            items: [],
+          }
+    );
+  }
+  usePascalPropsChanged(oldValue, newValue) {
+    if (oldValue) {
+      this.data = {
+        page: this.Data.Page,
+        pageSize: this.Data.PageSize,
+        recordCount: this.Data.RecordCount,
+        pageCount: this.Data.PageCount,
+        items: this.Data.Items,
+      };
+
+      delete this.Data;
+    } else {
+      this.data = {
+        Page: this.data.page,
+        PageSize: this.data.pageSize,
+        RecordCount: this.data.recordCount,
+        PageCount: this.data.pageCount,
+        Items: this.data.items,
+      };
+
+      delete this.data;
+    }
   }
 }
 
@@ -229,5 +355,4 @@ ServiceResponse.fromStatus = (status, message, ex) => {
   return result;
 };
 
-export default ServiceResponse;
-export { ServicePagingResponse };
+export { ServiceResponse, ServicePagingResponse };

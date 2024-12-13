@@ -1,13 +1,25 @@
 const ServiceResponseStatus = {
     Succeeded: 'Succeeded',
+
     Failed: 'Failed',
     Faulted: 'Faulted',
+    Defected: 'Defected',
     Flawed: 'Flawed',
-    Deleted: 'Deleted',
-    Removed: 'Removed',
-    Recovered: 'Recovered',
     Errored: 'Errored',
+    Stopped: 'Stopped',
 
+    Abandoned: 'Abandoned',
+    Aborted: 'Aborted',
+
+    Rejected: 'Rejected',
+    Refused: 'Refused',
+    
+    Quited: 'Quited',
+    Exited: 'Exited',
+    Halted: 'Halted',
+    
+    Blocked: 'Blocked',
+    
     AccessDenied: 'AccessDenied',
     NotAuthenticated: 'NotAuthenticated',
     NotAuthorized: 'NotAuthorized',

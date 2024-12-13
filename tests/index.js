@@ -1,5 +1,5 @@
 import TestRunner from "@locustjs/test";
-import ServiceResponse from "../src";
+import { ServiceResponse } from "../src";
 import ServiceResponseStatus from "../src/ServiceResponseStatus";
 
 const tests = [
@@ -110,7 +110,7 @@ const tests = [
 
       // ------------------------------------
 
-      ServiceResponse.statusSeparator = '-';
+      ServiceResponse.statusSeparator = "-";
 
       const sr2 = new ServiceResponse();
 
@@ -120,7 +120,7 @@ const tests = [
 
       // ------------------------------------
 
-      ServiceResponse.statusSeparator = '';
+      ServiceResponse.statusSeparator = "";
       ServiceResponse.usePascalStatus = true;
 
       const sr3 = new ServiceResponse();
@@ -129,9 +129,11 @@ const tests = [
 
       expect(sr3.status).toBe("NotFound");
 
+      ServiceResponse.usePascalStatus = false;
+
       // ------------------------------------
 
-      ServiceResponse.statusSeparator = '-';
+      ServiceResponse.statusSeparator = "-";
       ServiceResponse.usePascalStatus = true;
 
       const sr4 = new ServiceResponse();
@@ -139,6 +141,8 @@ const tests = [
       sr4.notFound();
 
       expect(sr4.status).toBe("Not-Found");
+
+      ServiceResponse.usePascalStatus = false;
     },
   ],
   [
@@ -146,10 +150,10 @@ const tests = [
     (expect) => {
       const sr1 = new ServiceResponse();
 
-      ServiceResponse.statusSeparator = '-';
+      ServiceResponse.statusSeparator = "-";
       ServiceResponse.usePascalStatus = false;
 
-      sr1.status = ServiceResponse.formatStatus('AppNotFound');
+      sr1.status = ServiceResponse.formatStatus("AppNotFound");
 
       expect(sr1.status).toBe("app-not-found");
 
@@ -157,28 +161,49 @@ const tests = [
 
       const sr2 = new ServiceResponse();
 
-      ServiceResponse.statusSeparator = '-';
+      ServiceResponse.statusSeparator = "-";
       ServiceResponse.usePascalStatus = true;
 
-      sr2.status = ServiceResponse.formatStatus('AppNotFound');
+      sr2.status = ServiceResponse.formatStatus("AppNotFound");
 
       expect(sr2.status).toBe("App-Not-Found");
+
+      ServiceResponse.usePascalStatus = false;
     },
   ],
   [
-    "ServiceResponse: copy",
+    "ServiceResponse: copy 1",
     (expect) => {
       const sr1 = new ServiceResponse();
       const sr2 = new ServiceResponse();
 
-      ServiceResponse.statusSeparator = '';
+      ServiceResponse.statusSeparator = "";
       ServiceResponse.usePascalStatus = true;
 
       sr1.notFound();
-      
+
       sr2.copy(sr1);
 
       expect(sr2.status).toBe("NotFound");
+
+      ServiceResponse.usePascalStatus = false;
+    },
+  ],
+  [
+    "ServiceResponse: copy 2",
+    (expect) => {
+      const sr1 = new ServiceResponse();
+      const sr2 = new ServiceResponse();
+
+      sr1.notFound();
+
+      sr2.usePascalProps = true;
+
+      sr2.copy(sr1);
+
+      expect(sr2.status).toBeUndefined();
+      expect(sr2.Status).toBeDefined();
+      expect(sr2.Status).toBe("notfound");
     },
   ],
   [
@@ -187,10 +212,10 @@ const tests = [
       const sr1 = new ServiceResponse();
       const sr2 = new ServiceResponse();
 
-      ServiceResponse.statusSeparator = '';
+      ServiceResponse.statusSeparator = "";
       ServiceResponse.usePascalStatus = true;
 
-      sr1.foo = 'Foo';
+      sr1.foo = "Foo";
       sr1.notFound();
 
       sr2.copy(sr1);
@@ -198,8 +223,72 @@ const tests = [
       expect(sr2.status).toBe("NotFound");
       expect(sr2.foo).toBeDefined();
       expect(sr2.foo).toBe(sr1.foo);
+
+      ServiceResponse.usePascalStatus = false;
     },
-  ]
+  ],
+  [
+    "ServiceResponse: toJson",
+    (expect) => {
+      const sr = new ServiceResponse();
+
+      sr.failed();
+
+      expect(sr.toJson()).toBe(JSON.stringify(sr));
+    },
+  ],
+  [
+    "ServiceResponse: fromStatus",
+    (expect) => {
+      const sr = ServiceResponse.fromStatus("my-status");
+
+      expect(sr.status).toBe("my-status");
+    },
+  ],
+  [
+    "ServiceResponse: messageKey 1",
+    (expect) => {
+      const sr = new ServiceResponse();
+
+      sr.messageKey = "some-key";
+
+      expect(sr.messageKey).toBe("some-key");
+      expect(sr.messageKey).toBeDefined();
+      expect(JSON.stringify(sr).indexOf("messageKey")).toBe(-1);
+    },
+  ],
+  [
+    "ServiceResponse: messageKey 2",
+    (expect) => {
+      const sr = new ServiceResponse();
+
+      sr.messageKey = "some-key";
+
+      sr.usePascalProps = true;
+
+      expect(sr.messageKey).toBeUndefined();
+      expect(sr.MessageKey).toBeDefined();
+      expect(sr.MessageKey).toBe("some-key");
+      expect(JSON.stringify(sr).indexOf("MessageKey")).toBe(-1);
+    },
+  ],
+  [
+    "ServiceResponse: messageKey 3",
+    (expect) => {
+      const sr1 = new ServiceResponse();
+      const sr2 = new ServiceResponse();
+
+      sr1.messageKey = "some-key";
+
+      sr2.usePascalProps = true;
+
+      sr2.copy(sr1);
+
+      expect(sr2.messageKey).toBeUndefined();
+      expect(sr2.MessageKey).toBeDefined();
+      expect(sr2.MessageKey).toBe("some-key");
+    },
+  ],
 ];
 
 TestRunner.start(tests, true);

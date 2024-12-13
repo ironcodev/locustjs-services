@@ -1,23 +1,36 @@
 {
   "name": "@locustjs/services",
   "version": "1.0.0",
-  "description": "This library provides models and types to work with services (front-end/back-end)",
+  "description": "This library provides a `ServiceResponse` model, helping services implementing `Result Pattern` (front-end/back-end).",
   "main": "dist/index.js",
   "module": "src/index.js",
   "scripts": {
-    "build": "rollup src/index.js --file dist/index.js --format cjs",
+    "build": "rollup -c",
     "test": "node -r esm ./tests/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ironcodev/locustjs-services.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ironcodev/locustjs-services/issues"
+  },
+  "homepage": "https://github.com/ironcodev/locustjs-services#readme",
+  "keywords": [
+    "locustjs",
+    "ServiceResponse",
+    "javascript",
+    "result pattern"
+  ],
+  "author": "Iron Code",
+  "license": "MIT",
   "devDependencies": {
     "esm": "^3.2.25",
-    "rollup": "^4.18.0"
+    "rollup": "^4.18.0",
+    "@locustjs/test": "^1.6.2"
   },
   "dependencies": {
-    "@locustjs/base": "^4.1.0",
-    "@locustjs/extensions-string": "^2.0.2",
-    "@locustjs/test": "^1.6.2"
+    "@locustjs/base": "^4.1.1",
+    "@locustjs/extensions-string": "^2.0.5"
   }
 }

@@ -5,14 +5,26 @@ var extensionsString = require('@locustjs/extensions-string');
 
 const ServiceResponseStatus = {
     Succeeded: 'Succeeded',
+
     Failed: 'Failed',
     Faulted: 'Faulted',
+    Defected: 'Defected',
     Flawed: 'Flawed',
-    Deleted: 'Deleted',
-    Removed: 'Removed',
-    Recovered: 'Recovered',
     Errored: 'Errored',
+    Stopped: 'Stopped',
 
+    Abandoned: 'Abandoned',
+    Aborted: 'Aborted',
+
+    Rejected: 'Rejected',
+    Refused: 'Refused',
+    
+    Quited: 'Quited',
+    Exited: 'Exited',
+    Halted: 'Halted',
+    
+    Blocked: 'Blocked',
+    
     AccessDenied: 'AccessDenied',
     NotAuthenticated: 'NotAuthenticated',
     NotAuthorized: 'NotAuthorized',
@@ -59,14 +71,14 @@ const props = {
   subject: ["Subject", base.isString],
   message: ["Message", base.isString],
   messageKey: ["MessageKey", base.isString],
-  messageArgs: ["MessageArgs", base.isObject],
+  messageArgs: ["MessageArgs", () => true],
   date: ["Date", base.isDate],
   data: ["Data", () => true],
   exception: ["Exception", base.isObject],
-  innerResponses: ["InnerResponses", (x) => base.isArray(x)],
+  innerResponses: ["InnerResponses", base.isArray],
   info: ["Info", base.isString],
   bag: ["Bag", () => true],
-  logs: ["Logs", (x) => base.isArray(x)],
+  logs: ["Logs", base.isArray],
 };
 
 class ServiceResponse {
@@ -103,8 +115,46 @@ class ServiceResponse {
       value: base.convert.toBool(ServiceResponse.usePascalProps),
     });
 
+    // messageKey and messageArgs are special properties.
+    // we don't want them to be serialized in JSON, since they
+    // are only used in translating the ServiceResponse and
+    // providing a translated message.
+    // Thus, we define them using Object.defineProperty()
+    // with `enumerable: false`
+
+    if (this.usePascalProps) {
+      Object.defineProperty(this, "MessageKey", {
+        enumerable: false,
+        writable: true,
+        configurable: true,
+        value: undefined,
+      });
+
+      Object.defineProperty(this, "MessageArgs", {
+        enumerable: false,
+        writable: true,
+        configurable: true,
+        value: undefined,
+      });
+    } else {
+      Object.defineProperty(this, "messageKey", {
+        enumerable: false,
+        writable: true,
+        configurable: true,
+        value: undefined,
+      });
+
+      Object.defineProperty(this, "messageArgs", {
+        enumerable: false,
+        writable: true,
+        configurable: true,
+        value: undefined,
+      });
+    }
+
     this.copy(sr);
   }
+  usePascalPropsChanged(oldValue, newValue) {}
   get usePascalProps() {
     return this._usePascalProps;
   }
@@ -115,6 +165,42 @@ class ServiceResponse {
       this._usePascalProps = value;
 
       if (old != this._usePascalProps) {
+        if (old) {
+          Object.defineProperty(this, "messageKey", {
+            enumerable: false,
+            writable: true,
+            configurable: true,
+            value: this.MessageKey,
+          });
+
+          Object.defineProperty(this, "messageArgs", {
+            enumerable: false,
+            writable: true,
+            configurable: true,
+            value: this.MessageArgs,
+          });
+
+          delete this.MessageKey;
+          delete this.MessageArgs;
+        } else {
+          Object.defineProperty(this, "MessageKey", {
+            enumerable: false,
+            writable: true,
+            configurable: true,
+            value: this.messageKey,
+          });
+
+          Object.defineProperty(this, "MessageArgs", {
+            enumerable: false,
+            writable: true,
+            configurable: true,
+            value: this.messageArgs,
+          });
+
+          delete this.messageKey;
+          delete this.messageArgs;
+        }
+
         for (let prop of Object.keys(this)) {
           if (prop != "_usePascalProps") {
             const pascalProp = old ? prop : props[prop][0];
@@ -129,6 +215,8 @@ class ServiceResponse {
             }
           }
         }
+
+        this.usePascalPropsChanged(old, value);
       }
     }
   }
@@ -182,6 +270,22 @@ class ServiceResponse {
     if (base.isObject(sr)) {
       for (let prop of Object.keys(sr)) {
         this._copyProp(prop, sr);
+      }
+
+      if (sr.messageKey !== undefined) {
+        this._copyProp("messageKey", sr);
+      }
+
+      if (sr.MessageKey !== undefined) {
+        this._copyProp("MessageKey", sr);
+      }
+
+      if (sr.messageArgs !== undefined) {
+        this._copyProp("messageArgs", sr);
+      }
+
+      if (sr.MessageArgs !== undefined) {
+        this._copyProp("MessageArgs", sr);
       }
     }
   }
@@ -247,6 +351,54 @@ Object.keys(ServiceResponseStatus).forEach((key) => {
   }
 });
 
+class ServicePagingResponse extends ServiceResponse {
+  constructor() {
+    super();
+
+    this._setProp(
+      "data",
+      ServiceResponse.usePascalProps
+        ? {
+            Page: 1,
+            PageSize: 10,
+            RecordCount: 0,
+            PageCount: 0,
+            Items: [],
+          }
+        : {
+            page: 1,
+            pageSize: 10,
+            recordCount: 0,
+            pageCount: 0,
+            items: [],
+          }
+    );
+  }
+  usePascalPropsChanged(oldValue, newValue) {
+    if (oldValue) {
+      this.data = {
+        page: this.Data.Page,
+        pageSize: this.Data.PageSize,
+        recordCount: this.Data.RecordCount,
+        pageCount: this.Data.PageCount,
+        items: this.Data.Items,
+      };
+
+      delete this.Data;
+    } else {
+      this.data = {
+        Page: this.data.page,
+        PageSize: this.data.pageSize,
+        RecordCount: this.data.recordCount,
+        PageCount: this.data.pageCount,
+        Items: this.data.items,
+      };
+
+      delete this.data;
+    }
+  }
+}
+
 ServiceResponse.fromStatus = (status, message, ex) => {
   const result = new ServiceResponse();
 
@@ -255,4 +407,5 @@ ServiceResponse.fromStatus = (status, message, ex) => {
   return result;
 };
 
-module.exports = ServiceResponse;
+exports.ServicePagingResponse = ServicePagingResponse;
+exports.ServiceResponse = ServiceResponse;

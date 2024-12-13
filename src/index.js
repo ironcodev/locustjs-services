@@ -1,3 +1,3 @@
-import ServiceResponse from "./ServiceResponse";
+import { ServiceResponse, ServicePagingResponse } from "./ServiceResponse";
 
-export default ServiceResponse;
+export { ServiceResponse, ServicePagingResponse };
