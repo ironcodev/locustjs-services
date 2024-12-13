@@ -1,6 +1,6 @@
 {
   "name": "@locustjs/services",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "This library provides a `ServiceResponse` model, helping services implementing `Result Pattern` (front-end/back-end).",
   "main": "dist/index.js",
   "module": "src/index.js",
