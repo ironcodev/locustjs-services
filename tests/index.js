@@ -1,6 +1,7 @@
 import TestRunner from "@locustjs/test";
 import { ServiceResponse } from "../src";
 import ServiceResponseStatus from "../src/ServiceResponseStatus";
+import { isSomeArray } from "@locustjs/base";
 
 const tests = [
   [
@@ -234,7 +235,15 @@ const tests = [
 
       sr.failed();
 
-      expect(sr.toJson()).toBe(JSON.stringify(sr));
+      const json = sr.toJson();
+
+      expect(json[0]).toBe("{");
+      expect(json[json.length - 1]).toBe("}");
+      expect(json.indexOf("message")).toBeLowerThan(0);
+      expect(json.indexOf("messageKey")).toBeLowerThan(0);
+      expect(json.indexOf("messageArgs")).toBeLowerThan(0);
+      expect(json.indexOf("info")).toBeLowerThan(0);
+      expect(json.indexOf("bag")).toBeLowerThan(0);
     },
   ],
   [
@@ -287,6 +296,67 @@ const tests = [
       expect(sr2.messageKey).toBeUndefined();
       expect(sr2.MessageKey).toBeDefined();
       expect(sr2.MessageKey).toBe("some-key");
+    },
+  ],
+  [
+    "ServiceResponse: setMessageKey 1",
+    (expect) => {
+      const sr = new ServiceResponse();
+
+      sr.setMessageKey("my-service.my-action");
+
+      expect(sr.messageKey).toBe("my-service.my-action");
+    },
+  ],
+  [
+    "ServiceResponse: setMessageKey 2",
+    (expect) => {
+      const sr = new ServiceResponse();
+
+      sr.failed();
+
+      sr.setMessageKey("my-service", "my-action");
+
+      expect(sr.messageKey).toBe("my-service.my-action.failed");
+    },
+  ],
+  [
+    "ServiceResponse: addResponse",
+    (expect) => {
+      const sr1 = new ServiceResponse();
+      const sr2 = new ServiceResponse();
+
+      sr1.failed();
+
+      sr2.addResponse(sr1);
+
+      expect(isSomeArray(sr2.innerResponses)).toBeTrue();
+      expect(sr2.innerResponses.length).toBe(1);
+      expect(sr2.innerResponses[0]).toBe(sr1);
+    },
+  ],
+  [
+    "ServiceResponse: addArg 1",
+    (expect) => {
+      const sr = new ServiceResponse();
+
+      const _sr = sr.addArg("name", 10);
+
+      expect(_sr === sr).toBeTrue();
+      expect(sr.messageArgs).toBeObject();
+      expect(sr.messageArgs.name).toBe(10);
+    },
+  ],
+  [
+    "ServiceResponse: addArg 2",
+    (expect) => {
+      const sr = new ServiceResponse();
+
+      const _sr = sr.addArg({ name: 10 });
+
+      expect(_sr === sr).toBeTrue();
+      expect(sr.messageArgs).toBeObject();
+      expect(sr.messageArgs.name).toBe(10);
     },
   ],
 ];

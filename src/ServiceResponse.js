@@ -6,10 +6,13 @@ import {
   isString,
   isDate,
   isNull,
+  isSomeObject,
+  isSomeString,
 } from "@locustjs/base";
 import { convert } from "@locustjs/base";
 import { isUpper, camelCase } from "@locustjs/extensions-string";
 import ServiceResponseStatus from "./ServiceResponseStatus";
+import { clean } from "@locustjs/extensions-object";
 
 const isNullOrUndefined = (x) => isNull(x) || isUndefined(x);
 
@@ -33,6 +36,7 @@ class ServiceResponse {
   static usePascalProps = false;
   static usePascalStatus = false;
   static statusSeparator = "";
+  static messageKeySeparator = ".";
 
   static formatStatus(status) {
     let result = [];
@@ -208,6 +212,14 @@ class ServiceResponse {
       }
     }
   }
+  _getProp(prop) {
+    const entry = props[prop];
+    const propCamel = prop;
+    const propPascal = entry[0];
+    const p = this.usePascalProps ? propPascal : propCamel;
+
+    return this[p];
+  }
   _removeProp(prop) {
     const entry = props[prop];
 
@@ -238,7 +250,9 @@ class ServiceResponse {
     }
   }
   toJson(spacer) {
-    return JSON.stringify(this, null, spacer);
+    const res = clean({ ...this }, "all");
+
+    return JSON.stringify(res, null, spacer);
   }
   is(s) {
     const status = this.usePascalProps ? this.Status : this.status;
@@ -256,6 +270,95 @@ class ServiceResponse {
           ServiceResponse.formatStatus("succeeded")
       )
     );
+
+    return this;
+  }
+  setException(ex) {
+    this._setProp("exception", ex);
+
+    return this;
+  }
+  setData(data) {
+    this._setProp("data", data);
+
+    return this;
+  }
+  setInfo(info) {
+    if (isString(key)) {
+      this._setProp("info", info);
+    }
+
+    return this;
+  }
+  setBag(bag) {
+    if (isObject(args)) {
+      this._setProp("bag", bag);
+    }
+
+    return this;
+  }
+  setMessageKey(...args) {
+    const arr = [];
+
+    for (let arg of args) {
+      if (isString(arg)) {
+        arr.push(arg);
+      }
+    }
+
+    if (arr.length > 1) {
+      arr.push(this._getProp("status"));
+    }
+
+    if (arr.length) {
+      this._setProp(
+        "messageKey",
+        arr.join(ServiceResponse.messageKeySeparator)
+      );
+    }
+
+    return this;
+  }
+  setArgs(args) {
+    if (isObject(args)) {
+      this._setProp("messageArgs", args);
+    }
+
+    return this;
+  }
+  addArg(args, value) {
+    if (isObject(args)) {
+      this._setProp("messageArgs", {
+        ...this._getProp("messageArgs"),
+        ...args,
+      });
+    } else if (isSomeString(args)) {
+      this._setProp("messageArgs", {
+        ...this._getProp("messageArgs"),
+        [args]: value,
+      });
+    }
+
+    return this;
+  }
+  addResponse(res, subject) {
+    if (isSomeObject(res) && res instanceof ServiceResponse) {
+      let innerResponses = this._getProp("innerResponses");
+
+      if (!isArray(innerResponses)) {
+        innerResponses = [];
+
+        this._setProp("innerResponses", innerResponses);
+      }
+
+      if (isString(subject)) {
+        res._setProp("subject", subject);
+      }
+
+      innerResponses.push(res);
+    }
+
+    return this;
   }
 }
 
@@ -271,13 +374,21 @@ Object.keys(ServiceResponseStatus).forEach((key) => {
         this._setProp("success", true);
         this._removeProp("exception");
         this._setProp("data", data);
+
+        return this;
       };
     } else {
       ServiceResponse.prototype[methodName] = function (message, ex) {
         this._setProp("status", ServiceResponse.formatStatus(status));
-        this._setProp("message", message);
+
+        if (isString(message)) {
+          this._setProp("message", message);
+        }
+
         this._setProp("success", false);
         this._setProp("exception", ex);
+
+        return this;
       };
     }
   }

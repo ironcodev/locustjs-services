@@ -2,6 +2,7 @@
 
 var base = require('@locustjs/base');
 var extensionsString = require('@locustjs/extensions-string');
+var extensionsObject = require('@locustjs/extensions-object');
 
 const ServiceResponseStatus = {
     Succeeded: 'Succeeded',
@@ -85,6 +86,7 @@ class ServiceResponse {
   static usePascalProps = false;
   static usePascalStatus = false;
   static statusSeparator = "";
+  static messageKeySeparator = ".";
 
   static formatStatus(status) {
     let result = [];
@@ -260,6 +262,14 @@ class ServiceResponse {
       }
     }
   }
+  _getProp(prop) {
+    const entry = props[prop];
+    const propCamel = prop;
+    const propPascal = entry[0];
+    const p = this.usePascalProps ? propPascal : propCamel;
+
+    return this[p];
+  }
   _removeProp(prop) {
     const entry = props[prop];
 
@@ -290,7 +300,9 @@ class ServiceResponse {
     }
   }
   toJson(spacer) {
-    return JSON.stringify(this, null, spacer);
+    const res = extensionsObject.clean({ ...this }, "all");
+
+    return JSON.stringify(res, null, spacer);
   }
   is(s) {
     const status = this.usePascalProps ? this.Status : this.status;
@@ -308,6 +320,95 @@ class ServiceResponse {
           ServiceResponse.formatStatus("succeeded")
       )
     );
+
+    return this;
+  }
+  setException(ex) {
+    this._setProp("exception", ex);
+
+    return this;
+  }
+  setData(data) {
+    this._setProp("data", data);
+
+    return this;
+  }
+  setInfo(info) {
+    if (base.isString(key)) {
+      this._setProp("info", info);
+    }
+
+    return this;
+  }
+  setBag(bag) {
+    if (base.isObject(args)) {
+      this._setProp("bag", bag);
+    }
+
+    return this;
+  }
+  setMessageKey(...args) {
+    const arr = [];
+
+    for (let arg of args) {
+      if (base.isString(arg)) {
+        arr.push(arg);
+      }
+    }
+
+    if (arr.length > 1) {
+      arr.push(this._getProp("status"));
+    }
+
+    if (arr.length) {
+      this._setProp(
+        "messageKey",
+        arr.join(ServiceResponse.messageKeySeparator)
+      );
+    }
+
+    return this;
+  }
+  setArgs(args) {
+    if (base.isObject(args)) {
+      this._setProp("messageArgs", args);
+    }
+
+    return this;
+  }
+  addArg(args, value) {
+    if (base.isObject(args)) {
+      this._setProp("messageArgs", {
+        ...this._getProp("messageArgs"),
+        ...args,
+      });
+    } else if (base.isSomeString(args)) {
+      this._setProp("messageArgs", {
+        ...this._getProp("messageArgs"),
+        [args]: value,
+      });
+    }
+
+    return this;
+  }
+  addResponse(res, subject) {
+    if (base.isSomeObject(res) && res instanceof ServiceResponse) {
+      let innerResponses = this._getProp("innerResponses");
+
+      if (!base.isArray(innerResponses)) {
+        innerResponses = [];
+
+        this._setProp("innerResponses", innerResponses);
+      }
+
+      if (base.isString(subject)) {
+        res._setProp("subject", subject);
+      }
+
+      innerResponses.push(res);
+    }
+
+    return this;
   }
 }
 
@@ -323,13 +424,21 @@ Object.keys(ServiceResponseStatus).forEach((key) => {
         this._setProp("success", true);
         this._removeProp("exception");
         this._setProp("data", data);
+
+        return this;
       };
     } else {
       ServiceResponse.prototype[methodName] = function (message, ex) {
         this._setProp("status", ServiceResponse.formatStatus(status));
-        this._setProp("message", message);
+
+        if (base.isString(message)) {
+          this._setProp("message", message);
+        }
+
         this._setProp("success", false);
         this._setProp("exception", ex);
+
+        return this;
       };
     }
   }
