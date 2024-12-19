@@ -51,6 +51,7 @@ import { ServiceResponse } from '@locustjs/services'
 | `setData(data)`| sets `data` to the given `data` argument and returns current instance. |
 | `setException(ex)`| sets `exception` to the given `ex` argument and returns current instance. |
 | `setInfo(info)`| sets `info` to the given `info` argument and returns current instance. |
+| `setSubject(subject)`| sets `subject` to the given `subject` argument and returns current instance. |
 | `setBag(bag)`| sets `bag` to the given `bag` argument and returns current instance. |
 | `setMessageKey(key)`| sets `messageKey` to the given `key` argument and returns current instance. |
 | `setArgs(args)`| sets `messageArgs` to the given `args` object and returns current instance. |

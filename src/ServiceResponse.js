@@ -290,6 +290,13 @@ class ServiceResponse {
 
     return this;
   }
+  setSubject(subject) {
+    if (isString(subject)) {
+      this._setProp("subject", subject);
+    }
+    
+    return this;
+  }
   setBag(bag) {
     if (isObject(args)) {
       this._setProp("bag", bag);
