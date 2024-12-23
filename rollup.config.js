@@ -3,6 +3,5 @@ module.exports = {
   output: {
     file: "dist/index.js",
     format: "cjs",
-  },
-  external: ["@locustjs/base", "@locustjs/extensions-string"],
+  }
 };
